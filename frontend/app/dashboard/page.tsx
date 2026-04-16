@@ -12,8 +12,6 @@ import { AlertsSection } from '@/components/alerts-section'
 import { InsightsMentorCard } from '@/components/AIInsightsCard'
 import { BillingSection } from '@/components/billing-section'
 import { PaymentPanel } from '@/components/payment-panel'
-import { NotificationPanel } from '@/components/notification-panel'
-import { ProfileCard } from '@/components/profile-card'
 import { ChatWidget } from '@/components/chat-widget'
 import { Zap, Waves, Lightbulb, Activity } from 'lucide-react'
 
@@ -81,7 +79,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header notificationCount={dynamicNotifications.length + alerts.length} />
+      <Header notificationCount={dynamicNotifications.length + alerts.length} notifications={dynamicNotifications} />
 
       <main className="mx-auto max-w-7xl px-4 py-8">
         {!backendConnected && (
@@ -166,11 +164,7 @@ export default function DashboardPage() {
           <PaymentPanel amount={meterData.dailyConsumption * 8.5} meterId={meterId} />
         </section>
 
-        <section className="mb-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="space-y-6">
-            <ProfileCard user={user} />
-            <NotificationPanel notifications={dynamicNotifications} />
-          </div>
+        <section className="mb-8">
           <AlertsSection alerts={alerts} />
         </section>
       </main>
