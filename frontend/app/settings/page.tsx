@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/context/auth-context'
+import { apiFetch } from '@/lib/api'
 import { Header } from '@/components/header'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Laptop, Moon, Sun } from 'lucide-react'
@@ -34,6 +35,8 @@ export default function SettingsPage() {
   const router = useRouter()
   const [dailyLimit, setDailyLimit] = useState<number>(50)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState(false)
   const { theme, setTheme, resolvedTheme } = useTheme()
 
   useEffect(() => {
@@ -46,10 +49,33 @@ export default function SettingsPage() {
   }, [user, isLoading, router])
 
   const handleSaveSettings = async () => {
+    if (!user) return
+
     setIsSaving(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    updateDailyLimit(dailyLimit)
-    setIsSaving(false)
+    setSaveError(null)
+    setSaveSuccess(false)
+
+    try {
+      // Save to backend
+      await apiFetch('/api/users/update', {
+        method: 'PUT',
+        body: JSON.stringify({
+          user_id: user.id,
+          daily_limit: dailyLimit,
+        }),
+      })
+
+      // Update local state
+      updateDailyLimit(dailyLimit)
+      setSaveSuccess(true)
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to save settings')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (!user) {
@@ -161,19 +187,33 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={handleSaveSettings}
-            disabled={isSaving}
-            className="flex-1 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {isSaving ? 'Saving...' : 'Save Settings'}
-          </button>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex-1 py-2 bg-secondary text-secondary-foreground font-semibold rounded-lg hover:bg-secondary/90 transition-colors"
-          >
-            Back to Dashboard
-          </button>
+          {saveSuccess && (
+            <div className="flex-1 py-2 px-4 bg-green-500/20 text-green-700 font-semibold rounded-lg border border-green-500/40">
+              ✓ Settings saved successfully!
+            </div>
+          )}
+          {saveError && (
+            <div className="flex-1 py-2 px-4 bg-red-500/20 text-red-700 font-semibold rounded-lg border border-red-500/40">
+              ✗ {saveError}
+            </div>
+          )}
+          {!saveSuccess && !saveError && (
+            <>
+              <button
+                onClick={handleSaveSettings}
+                disabled={isSaving}
+                className="flex-1 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {isSaving ? 'Saving...' : 'Save Settings'}
+              </button>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="flex-1 py-2 bg-secondary text-secondary-foreground font-semibold rounded-lg hover:bg-secondary/90 transition-colors"
+              >
+                Back to Dashboard
+              </button>
+            </>
+          )}
         </div>
       </main>
     </div>

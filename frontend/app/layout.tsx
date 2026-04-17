@@ -42,6 +42,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

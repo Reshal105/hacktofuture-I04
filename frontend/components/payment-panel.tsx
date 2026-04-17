@@ -4,6 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { CheckCircle2, Clock3, CreditCard, XCircle } from 'lucide-react'
 
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
+
 interface PaymentRecord {
   id: number
   timestamp: string
@@ -55,11 +61,54 @@ export function PaymentPanel({ amount, meterId }: PaymentPanelProps) {
         }),
       })
 
-      setStatusMessage(`Payment successful — reference ${result.payment.reference}`)
-      await fetchHistory()
+      // Open Razorpay checkout
+      const options = {
+        key: result.payment.key,
+        amount: result.payment.amount * 100, // Razorpay expects amount in paisa
+        currency: 'INR',
+        name: 'Smart Grid Billing',
+        description: result.payment.description,
+        order_id: result.payment.order_id,
+        handler: async (response: any) => {
+          // Payment successful, verify with backend
+          try {
+            await apiFetch('/api/payments/verify', {
+              method: 'POST',
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount: result.payment.amount * 100,
+              }),
+            })
+
+            setStatusMessage(`Payment successful — reference ${response.razorpay_payment_id}`)
+            await fetchHistory()
+          } catch (verifyError) {
+            setErrorMessage('Payment verification failed. Please contact support.')
+          }
+        },
+        prefill: {
+          name: 'User',
+          email: 'user@example.com',
+          contact: '9999999999',
+        },
+        theme: {
+          color: '#3b82f6', // Primary blue color
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false)
+            setErrorMessage('Payment cancelled by user.')
+          },
+        },
+      }
+
+      const razorpayInstance = new window.Razorpay(options)
+      razorpayInstance.open()
+
     } catch (error) {
       setErrorMessage((error as Error)?.message || 'Payment failed. Please try again.')
-    } finally {
       setIsProcessing(false)
     }
   }

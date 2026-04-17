@@ -27,7 +27,8 @@ DATABASE_SCHEMA = [
     "name TEXT, "
     "phone TEXT, "
     "location TEXT, "
-    "meter_id TEXT"
+    "meter_id TEXT, "
+    "daily_limit REAL DEFAULT 50"
     ")",
     "CREATE TABLE IF NOT EXISTS payments ("
     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -68,5 +69,13 @@ def init_db(database_path=None):
     cursor = db.cursor()
     for statement in DATABASE_SCHEMA:
         cursor.execute(statement)
+    
+    # Add daily_limit column to existing users table if it doesn't exist
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN daily_limit REAL DEFAULT 50")
+    except sqlite3.OperationalError:
+        # Column already exists, ignore
+        pass
+    
     db.commit()
     db.close()

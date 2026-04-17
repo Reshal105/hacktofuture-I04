@@ -6,3 +6,4 @@ langchain-openai
 requests
 pandas
 scikit-learn  # For the forecasting math
+razorpay==1.4.2
